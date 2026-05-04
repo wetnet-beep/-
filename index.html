@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>10-минутная почта</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a6b3c, #0d4f2b, #1565C0, #0d47a1);
+            background-size: 400% 400%;
+            animation: bgMove 12s ease infinite;
+            color: #e0f7e0;
+            text-align: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        @keyframes bgMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .box {
+            max-width: 600px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px);
+            padding: 25px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        h2 { font-size: 1.7em; margin-bottom: 15px; color: #a5f0c5; }
+        .addr-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+        #emailAddr {
+            font-size: 1.1em;
+            background: rgba(0,0,0,0.35);
+            padding: 12px 16px;
+            border-radius: 30px;
+            word-break: break-all;
+            letter-spacing: 0.5px;
+            filter: blur(6px);
+            user-select: none;
+            transition: filter 0.3s;
+            cursor: pointer;
+        }
+        #emailAddr.visible {
+            filter: blur(0);
+        }
+        .timer {
+            font-size: 2.8em;
+            font-weight: bold;
+            color: #ffcc80;
+            margin: 10px 0;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #fff;
+            padding: 11px 22px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 6px;
+            font-size: 0.95em;
+            transition: all 0.25s;
+            backdrop-filter: blur(5px);
+        }
+        button:hover {
+            background: rgba(255,255,255,0.22);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .show-btn { background: rgba(255,200,50,0.15); border-color: rgba(255,200,50,0.4); color: #ffd966; }
+        .copy-btn { background: rgba(100,200,255,0.15); border-color: rgba(100,200,255,0.4); color: #80d8ff; }
+        .promo-row {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #promoInput {
+            padding: 10px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 0.95em;
+            outline: none;
+            width: 180px;
+            text-align: center;
+        }
+        #promoInput::placeholder { color: #aaa; }
+
+        /* Стили писем как в Gmail */
+        .msg {
+            background: rgba(255,255,255,0.06);
+            padding: 12px 14px;
+            margin: 5px 0;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid #4caf84;
+        }
+        .msg:hover { background: rgba(255,255,255,0.13); }
+        .msg .from { font-weight: bold; color: #80cbc4; font-size: 0.95em; }
+        .msg .subject { color: #e0e0e0; font-size: 0.9em; margin-top: 2px; }
+        .msg .preview { color: #999; font-size: 0.8em; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Полный просмотр письма */
+        .email-full {
+            background: rgba(0,0,0,0.5);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            text-align: left;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .email-full .back-btn {
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: #aaa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-size: 0.85em;
+        }
+        .email-full .back-btn:hover { color: #fff; background: rgba(255,255,255,0.15); }
+        .email-full .full-from { color: #80cbc4; font-size: 1.1em; margin-bottom: 5px; }
+        .email-full .full-subject { color: #fff; font-size: 1.3em; font-weight: bold; margin-bottom: 15px; }
+        .email-full .full-body { color: #ccc; line-height: 1.6; word-break: break-word; }
+        .email-full .full-body img { max-width: 100%; border-radius: 8px; }
+
+        #statusMsg { font-size: 0.85em; margin: 6px 0; color: #ffcc80; min-height: 20px; }
+        hr { border-color: rgba(255,255,255,0.1); margin: 18px 0; }
+
+        .elite-badge {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000;
+            font-size: 0.7em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-left: 6px;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 5px #ffd700; }
+            50% { box-shadow: 0 0 20px #ffd700; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🌿 10-минутная почта <span id="eliteBadge" style="display:none" class="elite-badge">ELITE</span></h2>
+
+    <div class="addr-row">
+        <span id="emailAddr" title="Нажмите чтобы показать">••••••••••••••••</span>
+        <button class="show-btn" onclick="revealEmail()">👁</button>
+        <button class="copy-btn" onclick="copyEmail()">📋</button>
+    </div>
+
+    <div class="timer" id="timer">10:00</div>
+    <div id="statusMsg"></div>
+
+    <button onclick="generateNew()">🔄 Новый ящик</button>
+    <button onclick="renderInbox()">📬 Обновить</button>
+
+    <div class="promo-row">
+        <input type="text" id="promoInput" placeholder="Промокод" maxlength="30">
+        <button onclick="applyPromo()">🎟 Активировать</button>
+    </div>
+
+    <hr>
+    <h3>📩 Входящие</h3>
+    <div id="inbox">Загрузка...</div>
+    <div id="emailView"></div>
+</div>
+
+<script>
+let token = '';
+let email = '';
+let timerInterval = null;
+let secondsLeft = 600;
+let limitUnlocked = false;
+let revealTimeout = null;
+let allMessages = []; // кеш писем для просмотра
+
+const API = 'https://api.mail.tm';
+const LIMIT_KEY = 'lastMailTime';
+const LIMIT_MS = 60 * 60 * 1000;
+
+// ====== ШИФРОВКА ПРОМОКОДА ======
+function encodePromo(plain) {
+    let shifted = '';
+    for (let i = 0; i < plain.length; i++) {
+        shifted += String.fromCharCode(plain.charCodeAt(i) + 3);
+    }
+    return btoa(shifted);
+}
+
+function decodePromo(encoded) {
+    try {
+        let shifted = atob(encoded);
+        let plain = '';
+        for (let i = 0; i < shifted.length; i++) {
+            plain += String.fromCharCode(shifted.charCodeAt(i) - 3);
+        }
+        return plain;
+    } catch(e) {
+        return '';
+    }
+}
+
+const ENCRYPTED_PROMO = encodePromo('POHCTA2026');
+console.log('Зашифрованный промокод:', ENCRYPTED_PROMO);
+
+// Элитные ники для промокода
+const eliteNicks = ['vip', 'boss', 'king', 'star', 'pro', 'cool', 'ace', 'max', 'lux', 'gold'];
+// ================================
+
+function checkLimit() {
+    if (limitUnlocked) return true;
+    const last = localStorage.getItem(LIMIT_KEY);
+    if (!last) return true;
+    const elapsed = Date.now() - parseInt(last);
+    if (elapsed >= LIMIT_MS) return true;
+    const minutesLeft = Math.ceil((LIMIT_MS - elapsed) / 60000);
+    document.getElementById('statusMsg').textContent = 
+        `⏳ Следующий ящик через ${minutesLeft} мин. Или введите промокод.`;
+    return false;
+}
+
+function setLimit() {
+    if (!limitUnlocked) {
+        localStorage.setItem(LIMIT_KEY, Date.now().toString());
+    }
+}
+
+async function getDomain() {
+    const res = await fetch(API + '/domains');
+    const data = await res.json();
+    return data['hydra:member'][0].domain;
+}
+
+async function createAccount(address, password) {
+    await fetch(API + '/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, password })
+    });
+}
+
+async function getToken(address, password) {
+    const res = await fetch(API + '/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, password })
+    });
+    const data = await res.json();
+    return data.token;
+}
+
+async function fetchMessages() {
+    if (!token) return [];
+    try {
+        const res = await fetch(API + '/messages', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data['hydra:member'] || [];
+    } catch(e) {
+        return [];
+    }
+}
+
+// Получить полное содержимое письма
+async function fetchMessageById(msgId) {
+    try {
+        const res = await fetch(API + '/messages/' + msgId, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch(e) {
+        return null;
+    }
+}
+
+async function renderInbox() {
+    allMessages = await fetchMessages();
+    const inbox = document.getElementById('inbox');
+    document.getElementById('emailView').innerHTML = '';
+    
+    if (!token) {
+        inbox.innerHTML = 'Создайте ящик...';
+        return;
+    }
+    if (allMessages.length === 0) {
+        inbox.innerHTML = '📭 Писем пока нет...';
+        return;
+    }
+    inbox.innerHTML = allMessages.map((m, i) =>
+        `<div class="msg" onclick="openEmail('${m.id}')">
+            <div class="from">${m.from?.address || 'Неизвестно'}</div>
+            <div class="subject"><b>${m.subject || '(без темы)'}</b></div>
+            <div class="preview">${m.intro || ''}</div>
+        </div>`
+    ).join('');
+}
+
+// Открыть письмо (как в Gmail)
+async function openEmail(msgId) {
+    const view = document.getElementById('emailView');
+    view.innerHTML = '<div class="email-full">⏳ Загрузка письма...</div>';
+    
+    const msg = await fetchMessageById(msgId);
+    if (!msg) {
+        view.innerHTML = '<div class="email-full">❌ Не удалось загрузить письмо.</div>';
+        return;
+    }
+    
+    // Пробуем извлечь тело письма
+    let body = msg.text || msg.html || '';
+    // Если есть html, показываем его
+    if (msg.html && msg.html.length > 0) {
+        body = msg.html;
+    }
+    
+    view.innerHTML = `
+        <div class="email-full">
+            <button class="back-btn" onclick="closeEmail()">← Назад ко входящим</button>
+            <div class="full-from">От: ${msg.from?.address || 'Неизвестно'}</div>
+            <div class="full-subject">${msg.subject || '(без темы)'}</div>
+            <hr>
+            <div class="full-body">${body || '(пустое письмо)'}</div>
+        </div>
+    `;
+    document.getElementById('inbox').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeEmail() {
+    document.getElementById('emailView').innerHTML = '';
+    document.getElementById('inbox').style.display = 'block';
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+    secondsLeft = 600;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+        secondsLeft--;
+        updateTimerDisplay();
+        if (secondsLeft <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('statusMsg').textContent = '⏰ Время вышло! Создайте новый ящик.';
+            document.getElementById('inbox').innerHTML = 'Ящик истёк.';
+            document.getElementById('emailView').innerHTML = '';
+            token = '';
+            email = '';
+            allMessages = [];
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const m = Math.floor(secondsLeft / 60);
+    const s = secondsLeft % 60;
+    document.getElementById('timer').textContent =
+        `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function revealEmail() {
+    const el = document.getElementById('emailAddr');
+    if (!email) {
+        document.getElementById('statusMsg').textContent = 'Сначала создайте ящик!';
+        return;
+    }
+    el.textContent = email;
+    el.classList.add('visible');
+    clearTimeout(revealTimeout);
+    revealTimeout = setTimeout(() => {
+        el.classList.remove('visible');
+        el.textContent = '••••••••••••••••';
+    }, 7000);
+    document.getElementById('statusMsg').textContent = '👁 Адрес показан на 7 секунд';
+}
+
+// Копировать почту в буфер обмена
+async function copyEmail() {
+    if (!email) {
+        document.getElementById('statusMsg').textContent = 'Сначала создайте ящик!';
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(email);
+        document.getElementById('statusMsg').textContent = '📋 Адрес скопирован!';
+        setTimeout(() => {
+            if (document.getElementById('statusMsg').textContent === '📋 Адрес скопирован!') {
+                document.getElementById('statusMsg').textContent = '';
+            }
+        }, 2000);
+    } catch(e) {
+        // Фоллбэк для старых браузеров
+        const el = document.getElementById('emailAddr');
+        const original = el.textContent;
+        const wasBlurred = !el.classList.contains('visible');
+        el.textContent = email;
+        el.classList.add('visible');
+        const range = document.createRange();
+        range.selectNode(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+        if (wasBlurred) {
+            el.classList.remove('visible');
+            el.textContent = '••••••••••••••••';
+        }
+        document.getElementById('statusMsg').textContent = '📋 Адрес скопирован!';
+    }
+}
+
+async function generateNew() {
+    if (!checkLimit()) return;
+    document.getElementById('statusMsg').textContent = '⏳ Создаю ящик...';
+    document.getElementById('emailView').innerHTML = '';
+    
+    try {
+        const domain = await getDomain();
+        let randomUser;
+        
+        if (limitUnlocked) {
+            // Элитный адрес: короткий красивый ник
+            const eliteNick = eliteNicks[Math.floor(Math.random() * eliteNicks.length)];
+            const eliteNum = Math.floor(Math.random() * 99) + 1;
+            randomUser = eliteNick + eliteNum;
+        } else {
+            // Обычный адрес
+            randomUser = 'u' + Math.random().toString(36).substring(2, 10);
+        }
+        
+        const address = randomUser + '@' + domain;
+        const password = 'TmP@ss!' + Math.random().toString(36).substring(2, 6);
+
+        await createAccount(address, password);
+        token = await getToken(address, password);
+        email = address;
+
+        const el = document.getElementById('emailAddr');
+        el.textContent = '••••••••••••••••';
+        el.classList.remove('visible');
+        clearTimeout(revealTimeout);
+
+        setLimit();
+        startTimer();
+        await renderInbox();
+        
+        if (limitUnlocked) {
+            document.getElementById('statusMsg').textContent = '✅ Элитный ящик готов!';
+        } else {
+            document.getElementById('statusMsg').textContent = '✅ Ящик готов! Нажмите 👁 или 📋.';
+        }
+    } catch(e) {
+        document.getElementById('statusMsg').textContent = '❌ Ошибка, попробуйте позже.';
+        console.error(e);
+    }
+}
+
+function applyPromo() {
+    const input = document.getElementById('promoInput').value.trim();
+    const decrypted = decodePromo(ENCRYPTED_PROMO);
+    
+    if (input === decrypted) {
+        limitUnlocked = true;
+        localStorage.removeItem(LIMIT_KEY);
+        document.getElementById('eliteBadge').style.display = 'inline';
+        document.getElementById('statusMsg').textContent = '🎉 Промокод принят! Лимит снят + элитные адреса.';
+        document.getElementById('promoInput').value = '';
+    } else {
+        document.getElementById('statusMsg').textContent = '❌ Неверный промокод.';
+    }
+}
+
+// Автообновление писем
+setInterval(() => {
+    if (token && secondsLeft > 0 && !document.getElementById('emailView').innerHTML) {
+        renderInbox();
+    }
+}, 8000);
+
+// Старт при загрузке
+generateNew();
+</script>
+</body>
+</html>
