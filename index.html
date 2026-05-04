@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>10 минут почта (Mail.tm API)</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #eee; text-align: center; padding: 20px; }
+        .box { max-width: 550px; margin: 0 auto; background: #1e1e1e; padding: 20px; border-radius: 12px; }
+        #emailAddr { font-size: 1.3em; background: #333; padding: 12px; border-radius: 8px; word-break: break-all; margin: 15px 0; }
+        .timer { font-size: 2em; color: #ffaa00; }
+        button { background: #ff5500; border: none; color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: bold; cursor: pointer; margin: 8px; }
+        .msg { background: #2a2a2a; padding: 12px; margin: 6px 0; border-radius: 8px; text-align: left; }
+        .msg .from { font-weight: bold; color: #00aaff; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>⚡ 10-минутная почта</h2>
+    <div>Ваш адрес:</div>
+    <div id="emailAddr">Загрузка...</div>
+    <div class="timer" id="timer">10:00</div>
+    <button onclick="generateNew()">Новый ящик</button>
+    <button id="payBtn" onclick="alert('Оплата пока не подключена')">Продлить за $1 💰</button>
+    <hr>
+    <h3>📩 Входящие</h3>
+    <div id="inbox">Нет писем</div>
+</div>
+
+<script>
+let token = '';
+let email = '';
+let timerInterval = null;
+let secondsLeft = 600; // 10 минут
+
+const API = 'https://api.mail.tm';
+
+// 1. Получить доступные домены
+async function getDomain() {
+    const res = await fetch(API + '/domains');
+    const data = await res.json();
+    return data['hydra:member'][0].domain; // берем первый домен
+}
+
+// 2. Создать аккаунт
+async function createAccount(address, password) {
+    await fetch(API + '/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, password })
+    });
+}
+
+// 3. Получить токен
+async function getToken(address, password) {
+    const res = await fetch(API + '/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, password })
+    });
+    const data = await res.json();
+    return data.token;
+}
+
+// 4. Получить сообщения
+async function fetchMessages() {
+    if (!token) return [];
+    const res = await fetch(API + '/messages', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data['hydra:member'] || [];
+}
+
+// Отрисовка сообщений
+async function renderInbox() {
+    const msgs = await fetchMessages();
+    const inbox = document.getElementById('inbox');
+    if (msgs.length === 0) {
+        inbox.innerHTML = 'Писем пока нет...';
+        return;
+    }
+    inbox.innerHTML = msgs.map(m => 
+        `<div class="msg">
+            <span class="from">${m.from?.address || 'Неизвестно'}</span><br>
+            <b>${m.subject}</b><br>
+            <small>${m.intro || ''}</small>
+        </div>`
+    ).join('');
+}
+
+// Таймер
+function startTimer() {
+    clearInterval(timerInterval);
+    secondsLeft = 600;
+    timerInterval = setInterval(() => {
+        secondsLeft--;
+        const m = Math.floor(secondsLeft / 60);
+        const s = secondsLeft % 60;
+        document.getElementById('timer').textContent = 
+            `${m}:${s.toString().padStart(2,'0')}`;
+        if (secondsLeft <= 0) {
+            clearInterval(timerInterval);
+            alert('Время вышло! Чтобы продлить — оплатите.');
+            document.getElementById('inbox').innerHTML = 'Ящик истёк. Продлите доступ.';
+        }
+    }, 1000);
+}
+
+// Генерация нового ящика
+async function generateNew() {
+    const domain = await getDomain();
+    const randomUser = 'user' + Math.random().toString(36).substring(2, 10);
+    const address = randomUser + '@' + domain;
+    const password = 'StrongPass123!';
+    
+    await createAccount(address, password);
+    token = await getToken(address, password);
+    email = address;
+    document.getElementById('emailAddr').textContent = email;
+    startTimer();
+    renderInbox();
+}
+
+// Проверка писем каждые 5 секунд
+setInterval(() => {
+    if (token && secondsLeft > 0) renderInbox();
+}, 5000);
+
+// Старт при загрузке
+generateNew();
+</script>
+</body>
+</html>
